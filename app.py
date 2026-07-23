@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import requests
 from recipe_scrapers import scrape_me
 from google.cloud import firestore
 from google.oauth2 import service_account
@@ -22,7 +23,18 @@ if st.button("Clean & Save Recipe"):
     if url_input:
         with st.spinner("Downloading webpage and stripping fluff..."):
             try:
-                scraper = scrape_me(url_input)
+                # Disguise our request as a normal Chrome browser
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                
+                # Fetch the HTML content first
+                response = requests.get(url_input, headers=headers, timeout=10)
+                response.raise_for_status()
+                
+                # Pass both the URL and raw HTML to the scraper
+                scraper = scrape_me(url_input, html=response.text)
+                
                 recipe_data = {
                     "title": scraper.title(),
                     "source_url": url_input,
@@ -32,9 +44,11 @@ if st.button("Clean & Save Recipe"):
                     "instructions": scraper.instructions_list()
                 }
                 
+                # Save to GCP Firestore
                 doc_ref = db.collection("recipes").document()
                 doc_ref.set(recipe_data)
                 st.success(f"Successfully scraped & saved: '{scraper.title()}'!")
+                
             except Exception as e:
                 st.error(f"Could not scrape that URL. Error: {e}")
     else:
