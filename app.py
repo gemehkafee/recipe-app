@@ -31,7 +31,12 @@ if st.button("Clean & Save Recipe"):
                 }
                 
                 # 2. Fetch the page HTML
-                response = requests.get(url_input, headers=headers, timeout=10)
+                # response = requests.get(url_input, headers=headers, timeout=10)
+                # response.raise_for_status()
+                SCRAPER_API_KEY = "0a3aa80dd6e383f7da31594734e54b7a"
+                proxy_url = f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url_input}"
+
+                response = requests.get(proxy_url, timeout=20)
                 response.raise_for_status()
                 
                 # 3. Parse using recipe-scrapers' dedicated scrape_html function
